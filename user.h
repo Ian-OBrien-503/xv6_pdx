@@ -25,9 +25,9 @@ int sleep(int);
 int uptime(void);
 int halt(void);
 // adding for project #1
-#ifdef CS333_PROJECT
+#ifdef CS333_P1
 int date(struct rtcdate*);
-#endif // CS333_PROJET
+#endif // CS333_P1
 
 // ulib.c
 int stat(char*, struct stat*);
