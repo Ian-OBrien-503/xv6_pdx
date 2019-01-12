@@ -106,6 +106,9 @@ extern int sys_uptime(void);
 #ifdef PDX_XV6
 extern int sys_halt(void);
 #endif // PDX_XV6
+#ifdef CS333_PROJECT
+extern int sys_date(void);
+#endif //CS333_PROJECT
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -132,6 +135,9 @@ static int (*syscalls[])(void) = {
 #ifdef PDX_XV6
 [SYS_halt]    sys_halt,
 #endif // PDX_XV6
+#ifdef CS333_PROJECT
+[SYS_date]    sys_date,
+#endif //CS333_PROJECT
 };
 
 #ifdef PRINT_SYSCALLS
@@ -163,6 +169,8 @@ static char *syscallnames[] = {
 };
 #endif // PRINT_SYSCALLS
 
+
+// added feature to print system call name and return value
 void
 syscall(void)
 {
@@ -170,8 +178,12 @@ syscall(void)
   struct proc *curproc = myproc();
 
   num = curproc->tf->eax;
+
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     curproc->tf->eax = syscalls[num]();
+    #ifdef PRINT_SYSCALLS 
+    cprintf("%s -> %d \n",syscallnames[num], curproc->tf->eax);
+    #endif  // PRINT_SYSCALLS
   } else {
     cprintf("%d %s: unknown sys call %d\n",
             curproc->pid, curproc->name, num);

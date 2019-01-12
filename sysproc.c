@@ -98,3 +98,18 @@ sys_halt(void)
   return 0;
 }
 #endif // PDX_XV6
+
+#ifdef cs333_project
+int
+sys_date(void)
+{
+  struct rtcdate *d;
+
+  if(argptr(0, (void*)&d, sizeof(struct rtcdate)) < 0)
+    return -1;
+  else{
+    cmostime(d);
+    return 0;
+  }
+}
+#endif //cs333_project

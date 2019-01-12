@@ -24,6 +24,10 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int halt(void);
+// adding for project #1
+#ifdef CS333_PROJECT
+int date(struct rtcdate*);
+#endif // CS333_PROJET
 
 // ulib.c
 int stat(char*, struct stat*);
