@@ -99,17 +99,16 @@ sys_halt(void)
 }
 #endif // PDX_XV6
 
-#ifdef cs333_P1
+#ifdef CS333_P1
 int
 sys_date(void)
 {
   struct rtcdate *d;
-  cmostime(d);
 
   if(argptr(0, (void*)&d, sizeof(struct rtcdate)) < 0)
     return -1;
   else{
-    cprintf("************%d*******", d->year);
+    cmostime(d);
     return 0;
   }
 }
