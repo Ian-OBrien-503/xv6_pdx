@@ -120,6 +120,9 @@ allocproc(void)
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
+#ifdef CS333_P1
+  p->start_ticks = ticks;
+#endif // CS333_p1
 
   return p;
 }
@@ -516,11 +519,11 @@ kill(int pid)
   return -1;
 }
 
+
 //PAGEBREAK: 36
 // Print a process listing to console.  For debugging.
 // Runs when user types ^P on console.
 // No lock to avoid wedging a stuck machine further.
-
 void
 procdump(void)
 {
@@ -529,14 +532,37 @@ procdump(void)
   char *state;
   uint pc[10];
 
+#if defined(CS333_P3P4)
+#define HEADER "\nPID\tName\tUID\tGID\tPPID\tPrio\tElapsed\tCPU\tState\tSize\t PCs\n"
+#elif defined(CS333_P2)
+#define HEADER "\nPID\tName\tUID\tGID\tPPID\tElapsed\tCPU\tState\tSize\t PCs\n"
+#elif defined(CS333_P1)
+#define HEADER "\nPID\tName\tElapsed\tState\tSize\t PCs\n"
+#else
+#define HEADER "\n"
+#endif
+
+  cprintf(HEADER);
+
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->state == UNUSED)
       continue;
-    if(p->state >= 0 && p->state < NELEM(states) && states[p->state])
+
+    if(p->state > UNUSED && p->state < NELEM(states) && states[p->state])
       state = states[p->state];
     else
       state = "???";
+
+#if defined(CS333_P3P4)
+    procdumpP3P4(p, state);
+#elif defined(CS333_P2)
+    procdumpP2(p, state);
+#elif defined(CS333_P1)
+    procdumpP1(p, state);
+#else
     cprintf("%d\t%s\t%s\t", p->pid, p->name, state);
+#endif
+
     if(p->state == SLEEPING){
       getcallerpcs((uint*)p->context->ebp+2, pc);
       for(i=0; i<10 && pc[i] != 0; i++)
@@ -545,3 +571,11 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+//helper function for project 1
+#ifdef CS333_P1
+void
+procdumpP1(struct proc *p, char * state){
+  cprintf("%d\t%s\t%d\t%s\t%d\t",p->pid,p->name,p->start_ticks/1000, state, p->sz);
+}
+#endif  //CS333_P1
