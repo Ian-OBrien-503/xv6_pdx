@@ -576,6 +576,6 @@ procdump(void)
 #ifdef CS333_P1
 void
 procdumpP1(struct proc *p, char * state){
-  cprintf("%d\t%s\t%d\t%s\t%d\t",p->pid,p->name,p->start_ticks/1000, state, p->sz);
+  cprintf("%d\t%s\t%d.%d\t%s\t%d\t",p->pid,p->name,(ticks-p->start_ticks)/1000,(ticks-p->start_ticks)%1000, state, p->sz);
 }
 #endif  //CS333_P1
