@@ -37,11 +37,11 @@ enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 // Per-process state
 struct proc {
 #ifdef CS333_P1
-  uint start_ticks;
+  uint start_ticks;            // records time a process was started
 #endif //CS333_P1
 #ifdef CS333_P2
-  uint uid;
-  uint gid;
+  uint uid;                    // User ID 
+  uint gid;                    // Group ID 
 #endif  //CS333_P2
   uint sz;                     // Size of process memory (bytes)
   pde_t* pgdir;                // Page table

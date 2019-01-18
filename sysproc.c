@@ -115,41 +115,56 @@ sys_date(void)
 #endif //cs333_P1
 
 #ifdef CS333_P2
-// function checks for valid UID and if it is valid then it returns it
+// function checks for valid uid and returns error if not valid else it returns process uid
 uint
 sys_getuid(void)
 {
-  struct proc *p;
-
-  //not sure if this code is correct here, get arugment off the stack but what does that mean
-  if(argptr(0, (void*)&p, sizeof(struct proc)) < 0)
+  if(proc->uid < 0 || proc->uid > 32767)
     return -1;
-  else{
-    if(p->uid <= 0 || p->uid >= 32767)
-      return -1;
-    else
-      return p->uid;
-  }
+  else
+    return proc->uid;
 }
 #endif
 
 #ifdef CS333_P2
-// function checks for valid GID and if it is valid then it returns it
+// function checks for valid gid and returns error if not valid else it  returns process gid
 uint
 sys_getgid(void)
 {
-  struct proc *p;
-
-  //not sure if this code is correct here, get arugment off the stack but what does that mean
-  if(argptr(0, (void*)&p, sizeof(struct proc)) < 0)
+  if(proc->uid < 0 || proc->uid > 32767)
     return -1;
-  else{
-    if(p->gid <= 0 || p->gid >= 32767)
-      return -1;
-    else
-      return p->gid;
-  }
+  else
+    return proc->gid;
 }
 #endif
 
+#ifdef CS333_P2
+// function checks for null ppid and if it is gives it the pid as the ppid, this is only the 
+// case for the init process other than that it returns the "ppid" 
+uint
+sys_getppid(void)
+{
+  if(proc->parent->pid == NULL)
+    proc->parent->pid = proc->pid;
+  return proc->parent->pid;
+}
+#endif
+
+#ifdef CS333_P2
+// function checks for valid PPID and if it is valid then it returns it
+uint
+sys_setuid(void)
+{
+
+}
+#endif
+
+#ifdef CS333_P2
+// function checks for valid PPID and if it is valid then it returns it
+uint
+sys_setgid(void)
+{
+
+}
+#endif
 
