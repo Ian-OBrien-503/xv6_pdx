@@ -113,3 +113,22 @@ sys_date(void)
   }
 }
 #endif //cs333_P1
+
+#ifdef CS333_P2
+// function checks for valid UID and if it is valid then it returns it
+uint
+sys_getuid(void)
+{
+  struct proc *p;
+
+  //not sure if this code is correct here, get arugment off the stack but what does that mean
+  if(argptr(0, (void*)&p, sizeof(struct proc)) < 0)
+    return -1;
+  else{
+    if(p->uid <= 0 || p->uid >= 32767)
+      return -1;
+    else
+      return p->uid;
+  }
+}
+#endif

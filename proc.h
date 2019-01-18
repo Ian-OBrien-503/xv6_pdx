@@ -42,7 +42,7 @@ struct proc {
 #ifdef CS333_P2
   uint uid;
   uint gid;
-#endif
+#endif  //CS333_P2
   uint sz;                     // Size of process memory (bytes)
   pde_t* pgdir;                // Page table
   char *kstack;                // Bottom of kernel stack for this process

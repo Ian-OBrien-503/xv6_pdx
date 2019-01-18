@@ -28,6 +28,14 @@ int halt(void);
 #ifdef CS333_P1
 int date(struct rtcdate*);
 #endif // CS333_P1
+// adding for project #2
+#ifdef CS333_P2
+uint getuid(void);    // UID of current process
+uint getgid(void);    // GID of current process
+uint getppid(void);   // get PID of PARENT PROCESS, no data field to store PPID read proj description
+int setuid(uint);     // set UID
+int setgid(uint);     // set GID
+#endif  // CS333_P2
 
 // ulib.c
 int stat(char*, struct stat*);

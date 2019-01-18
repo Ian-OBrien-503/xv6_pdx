@@ -30,4 +30,9 @@ SYSCALL(sbrk)
 SYSCALL(sleep)
 SYSCALL(uptime)
 SYSCALL(halt)
-SYSCALL(date)
+SYSCALL(date)       // project 1
+SYSCALL(getuid)     // project 2
+SYSCALL(getgid)     // project 2
+SYSCALL(getppid)    // project 2
+SYSCALL(setuid)     // project 2
+SYSCALL(setgid)     // project 2
