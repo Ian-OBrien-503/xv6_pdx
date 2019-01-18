@@ -10,6 +10,12 @@
 #include "pdx-kernel.h"
 #endif // PDX_XV6
 
+// intialize uints to generate unique uid and pid in setuid() and getuid()
+#ifdef CS333_P2
+uint uid_gen = 0;
+uint gid_gen = 0;
+#endif //CS333_P2
+
 int
 sys_fork(void)
 {
@@ -119,10 +125,14 @@ sys_date(void)
 uint
 sys_getuid(void)
 {
-  if(proc->uid < 0 || proc->uid > 32767)
+  struct proc *p;
+  
+  if(argptr(0, (void*)&p, sizeof(struct proc)) < 0)
+    return -1;
+  if(p->uid < 0 || p->uid > 32767)
     return -1;
   else
-    return proc->uid;
+    return p->uid;
 }
 #endif
 
@@ -131,10 +141,14 @@ sys_getuid(void)
 uint
 sys_getgid(void)
 {
-  if(proc->uid < 0 || proc->uid > 32767)
+  struct proc *p;
+
+  if(argptr(0, (void*)&p, sizeof(struct proc)) < 0)
+    return -1;
+  if(p->gid < 0 || p->gid > 32767)
     return -1;
   else
-    return proc->gid;
+    return p->gid;
 }
 #endif
 
@@ -144,27 +158,53 @@ sys_getgid(void)
 uint
 sys_getppid(void)
 {
-  if(proc->parent->pid == NULL)
-    proc->parent->pid = proc->pid;
-  return proc->parent->pid;
+  struct proc *p;
+
+  if(argptr(0, (void*)&p, sizeof(struct proc)) < 0)
+    return -1;
+  if(p->parent->pid == NULL)
+    p->parent->pid = p->pid;
+  return p->parent->pid;
 }
 #endif
 
 #ifdef CS333_P2
-// function checks for valid PPID and if it is valid then it returns it
-uint
+// function checks for valid range of available uid's if all are taken then return error flag
+// else set the uid to the next available one
+int
 sys_setuid(void)
 {
+  struct proc *p;
 
+  if(argptr(0, (void*)&p, sizeof(struct proc)) < 0)
+    return -1;
+  if(uid_gen < 0 || uid_gen > 32767)
+    return -1;
+  else{
+    ++uid_gen;
+    p->uid = uid_gen;
+    return p->uid;
+  }
 }
 #endif
 
 #ifdef CS333_P2
-// function checks for valid PPID and if it is valid then it returns it
-uint
+// function checks for valid range of gid avaiable if all are taken then return error flag
+// else set the gid to the next available one
+int
 sys_setgid(void)
 {
+  struct proc *p;
 
+  if(argptr(0, (void*)&p, sizeof(struct proc)) < 0)
+    return -1;
+  if(gid_gen < 0 || gid_gen > 32767)
+    return -1;
+  else{
+    ++gid_gen;
+    p->gid = gid_gen;
+    return p->gid;
+  }
 }
 #endif
 

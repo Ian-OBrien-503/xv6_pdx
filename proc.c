@@ -579,3 +579,11 @@ procdumpP1(struct proc *p, char * state){
   cprintf("%d\t%s\t%d.%d\t%s\t%d\t",p->pid,p->name,(ticks-p->start_ticks)/1000,(ticks-p->start_ticks)%1000, state, p->sz);
 }
 #endif  //CS333_P1
+
+//helper function for project 2
+#ifdef CS333_P2
+void
+procdumpP2(struct proc *p, char * state){
+  cprintf("%d\t%s\t%d\t%d\t%d\t", p->pid,p->name,p->uid,p->gid,p->parent->pid);
+}
+#endif  //CS333_P1

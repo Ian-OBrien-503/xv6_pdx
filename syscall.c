@@ -146,11 +146,11 @@ static int (*syscalls[])(void) = {
 [SYS_date]    sys_date,
 #endif  //CS333_P1
 #ifdef CS333_P2
-[SYS_getuid]  sys_getuid;
-[SYS_getgid]  sys_getgid;
-[SYS_getppid] sys_getppid;
-[SYS_setuid]  sys_setuid;
-[SYS_setgid]  sys_setgid;
+[SYS_getuid]  sys_getuid,
+[SYS_getgid]  sys_getgid,
+[SYS_getppid] sys_getppid,
+[SYS_setuid]  sys_setuid,
+[SYS_setgid]  sys_setgid,
 #endif  //CS333_P2
 };
 
