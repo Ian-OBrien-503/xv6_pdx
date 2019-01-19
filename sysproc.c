@@ -162,8 +162,8 @@ sys_getppid(void)
 
   if(argptr(0, (void*)&p, sizeof(struct proc)) < 0)
     return -1;
-  if(p->parent->pid == NULL)
-    p->parent->pid = p->pid;
+  if(p->parent == NULL)
+    return p->pid; 
   return p->parent->pid;
 }
 #endif
