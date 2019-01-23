@@ -79,6 +79,11 @@ myproc(void) {
 // If found, change state to EMBRYO and initialize
 // state required to run in the kernel.
 // Otherwise return 0.
+
+#ifdef CS333_P2
+uint nextgid = 0;
+uint nextuid = 0;
+#endif //CS333_P2
 static struct proc*
 allocproc(void)
 {
@@ -98,6 +103,10 @@ allocproc(void)
   }
   p->state = EMBRYO;
   p->pid = nextpid++;
+#ifdef CS333_P2
+  p->gid = setgid(++nextgid);
+  p->uid = setuid(++nextuid);
+#endif  //CS333_P2
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -190,8 +199,7 @@ growproc(int n)
 int
 fork(void)
 {
-  int i;
-  uint pid;
+  int i, pid;
   struct proc *np;
   struct proc *curproc = myproc();
 
@@ -222,6 +230,11 @@ fork(void)
   safestrcpy(np->name, curproc->name, sizeof(curproc->name));
 
   pid = np->pid;
+#ifdef CS333_P2
+  // setting new process gid and uid to current process gid and uid it forked from
+  np->gid = curproc->gid;
+  np->uid = curproc->uid; 
+#endif //CS333_P2
 
   acquire(&ptable.lock);
   np->state = RUNNABLE;

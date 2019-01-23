@@ -125,14 +125,12 @@ sys_date(void)
 uint
 sys_getuid(void)
 {
-  struct proc *p;
-  
-  if(argptr(0, (void*)&p, sizeof(struct proc)) < 0)
-    return -1;
-  if(p->uid < 0 || p->uid > 32767)
-    return -1;
-  else
-    return p->uid;
+  //if(argptr(0, (void*)&p, sizeof(struct proc)) < 0)
+  //  return -1;
+  //if(p->uid < 0 || p->uid > 32767)
+  //  return -1;
+  //else
+    return proc->uid;
 }
 #endif
 
@@ -141,14 +139,13 @@ sys_getuid(void)
 uint
 sys_getgid(void)
 {
-  struct proc *p;
 
-  if(argptr(0, (void*)&p, sizeof(struct proc)) < 0)
-    return -1;
-  if(p->gid < 0 || p->gid > 32767)
-    return -1;
-  else
-    return p->gid;
+  //if(argptr(0, (void*)&p, sizeof(struct proc)) < 0)
+  //  return -1;
+  //if(p->gid < 0 || p->gid > 32767)
+  //  return -1;
+  //else
+    return proc->gid;
 }
 #endif
 
@@ -160,11 +157,11 @@ sys_getppid(void)
 {
   struct proc *p;
 
-  if(argptr(0, (void*)&p, sizeof(struct proc)) < 0)
-    return -1;
-  if(p->parent == NULL)
-    return p->pid; 
-  return p->parent->pid;
+  //if(argptr(0, (void*)&p, sizeof(struct proc)) < 0)
+  //  return -1;
+  if(proc->parent == NULL)
+    return proc->pid; 
+  return proc->parent->pid;
 }
 #endif
 
@@ -174,16 +171,15 @@ sys_getppid(void)
 int
 sys_setuid(void)
 {
-  struct proc *p;
 
-  if(argptr(0, (void*)&p, sizeof(struct proc)) < 0)
-    return -1;
+  //if(argptr(0, (void*)&p, sizeof(struct proc)) < 0)
+  //  return -1;
   if(uid_gen < 0 || uid_gen > 32767)
     return -1;
   else{
     ++uid_gen;
-    p->uid = uid_gen;
-    return p->uid;
+    proc->uid = uid_gen;
+    return proc->uid;
   }
 }
 #endif
@@ -194,16 +190,14 @@ sys_setuid(void)
 int
 sys_setgid(void)
 {
-  struct proc *p;
-
-  if(argptr(0, (void*)&p, sizeof(struct proc)) < 0)
-    return -1;
+  //if(argptr(0, (void*)&p, sizeof(struct proc)) < 0)
+  //  return -1;
   if(gid_gen < 0 || gid_gen > 32767)
     return -1;
   else{
     ++gid_gen;
-    p->gid = gid_gen;
-    return p->gid;
+    proc->gid = gid_gen;
+    return proc->gid;
   }
 }
 #endif

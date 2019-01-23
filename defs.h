@@ -162,6 +162,13 @@ int             argstr(int, char**);
 int             fetchint(uint, int*);
 int             fetchstr(uint, char**);
 void            syscall(void);
+///#ifdef CS333_P2
+///uint            getuid(void);
+///uint            getgid(void);
+///uint            getppid(void);
+int             setuid(uint);
+uint            setgid(uint);
+///#endif  //CS333_P2
 
 // timer.c
 void            timerinit(void);
