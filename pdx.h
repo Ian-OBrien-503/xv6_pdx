@@ -12,6 +12,7 @@
 #define RETURN_FAILURE -1
 #define UID 0
 #define GID 0
+#define P2TICKS 0
 
 #define NUL 0
 #ifndef NULL

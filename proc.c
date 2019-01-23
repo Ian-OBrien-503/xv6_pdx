@@ -101,8 +101,8 @@ allocproc(void)
   p->pid = nextpid++;
   // GID and UID are #defined 0 in pdx.h file
 #ifdef CS333_P2
-  p->gid = setgid(GID);
-  p->uid = setuid(UID);
+  p->gid = GID;
+  p->uid = UID;
 #endif  //CS333_P2
   release(&ptable.lock);
 
@@ -128,6 +128,8 @@ allocproc(void)
   p->context->eip = (uint)forkret;
 #ifdef CS333_P1
   p->start_ticks = ticks;
+  p->cpu_ticks_in = P2TICKS;
+  p->cpu_ticks_total = P2TICKS;
 #endif // CS333_p1
 
   return p;
@@ -155,7 +157,11 @@ userinit(void)
   p->tf->ss = p->tf->ds;
   p->tf->eflags = FL_IF;
   p->tf->esp = PGSIZE;
-  p->tf->eip = 0;  // beginning of initcode.S
+  p->tf->eip = 0;  // beginning of initcode.S 
+#ifdef CS333_P2
+  p->uid = UID;
+  p->gid = GID;
+#endif  //CS333_P2
 
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
@@ -344,6 +350,9 @@ scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
+#ifdef CS333_P2
+  uint ticks_out;
+#endif //CS333_P2
   c->proc = 0;
 #ifdef PDX_XV6
   int idle;  // for checking if processor is idle
@@ -368,6 +377,9 @@ scheduler(void)
 #ifdef PDX_XV6
       idle = 0;  // not idle this timeslice
 #endif // PDX_XV6
+#ifdef CS333_P2
+      p->cpu_ticks_in = ticks;
+#endif //CS333_P2
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
@@ -376,6 +388,11 @@ scheduler(void)
 
       // Process is done running for now.
       // It should have changed its p->state before coming back.
+#ifdef CS333_P2
+      ticks_out = ticks;
+      p->cpu_ticks_total += ticks_out - p->cpu_ticks_in;
+      ticks_out = 0;
+#endif //CS333_P2
       c->proc = 0;
     }
     release(&ptable.lock);
@@ -594,6 +611,13 @@ procdumpP1(struct proc *p, char * state){
 #ifdef CS333_P2
 void
 procdumpP2(struct proc *p, char * state){
-  cprintf("%d\t%s\t%d\t%d\t%d\t", p->pid,p->name,p->uid,p->gid,p->parent->pid);
+  uint x;
+  if(p->parent == NULL){
+    x = p->pid; 
+  }
+  else
+    x = p->parent->pid;
+
+  cprintf("%d\t%s\t%d\t%d\t%d\t%d.%d\t%d.%d\t", p->pid,p->name,p->uid,p->gid,x,(ticks-p->start_ticks)/1000,(ticks-p->start_ticks)%1000,(p->cpu_ticks_total)/1000,(p->cpu_ticks_total)%1000);
 }
 #endif  //CS333_P1

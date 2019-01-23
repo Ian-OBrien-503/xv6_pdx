@@ -84,3 +84,8 @@ pdx-kernel.h
 halt.c
 date.h
 date.c
+
+#additions for P2
+testsetuid.c
+testuidgid.c
+p2-test.c

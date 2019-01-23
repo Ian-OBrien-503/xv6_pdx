@@ -141,7 +141,8 @@ sys_getppid(void)
 {
   if(myproc()->parent == NULL)
     return myproc()->pid; 
-  return myproc()->parent->pid;
+  else
+    return myproc()->parent->pid;
 }
 #endif
 
@@ -151,11 +152,14 @@ sys_getppid(void)
 int
 sys_setuid(uint num)
 {
-  if(num < 0 || num > 32767)
+  int test = num;
+  if (argint(0, &test) < 0)
+    return -1;
+  if (argint(0, &test) > 32767)
     return -1;
   else{
-    myproc()->uid = num;
-    return myproc()->uid;
+    myproc()->uid = test;
+    return 0;
   }
 }
 #endif
@@ -166,11 +170,14 @@ sys_setuid(uint num)
 int
 sys_setgid(uint num)
 {
-  if(num < 0 || num > 32767)
+  int test = num;
+  if(argint(0, &test)<0)
+    return -1;
+  if(argint(0, &test)>32767)
     return -1;
   else{
-    myproc()->gid = num;
-    return myproc()->gid;
+    myproc()->gid = test;
+    return 0;
   }
 }
 #endif
