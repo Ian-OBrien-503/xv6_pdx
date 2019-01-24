@@ -9,6 +9,9 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+#ifdef CS333_P2
+struct uproc;
+#endif  //CS333_P2
 
 // bio.c
 void            binit(void);
@@ -118,6 +121,7 @@ void            procdumpP1(struct proc*, char * state);
 #endif  //CS333_P1
 #ifdef CS333_P2
 void            procdumpP2(struct proc*, char * state);
+int             getprocs(uint max, struct uproc * table);
 #endif  //CS333_P2
 void            scheduler(void) __attribute__((noreturn));
 void            sched(void);

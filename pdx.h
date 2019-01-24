@@ -13,6 +13,8 @@
 #define UID 0
 #define GID 0
 #define P2TICKS 0
+// for ps.c and getprocs()
+#define MAX 64
 
 #define NUL 0
 #ifndef NULL

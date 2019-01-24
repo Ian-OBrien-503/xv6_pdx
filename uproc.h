@@ -1,4 +1,5 @@
 #define STRMAX 32
+#include "types.h"
 
 struct uproc {
   uint pid;

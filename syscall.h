@@ -28,3 +28,4 @@
 #define SYS_getppid SYS_getgid+1  // project 2
 #define SYS_setuid  SYS_getppid+1 // project 2
 #define SYS_setgid  SYS_setuid+1  // project 2
+#define SYS_getprocs  SYS_setgid+1  // project 2

@@ -6,6 +6,9 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#ifdef CS333_P2
+#include "uproc.h"  // project 2
+#endif  //CS333_P2
 
 static char *states[] = {
 [UNUSED]    "unused",
@@ -128,9 +131,11 @@ allocproc(void)
   p->context->eip = (uint)forkret;
 #ifdef CS333_P1
   p->start_ticks = ticks;
+#endif // CS333_p1
+#ifdef CS333_P2
   p->cpu_ticks_in = P2TICKS;
   p->cpu_ticks_total = P2TICKS;
-#endif // CS333_p1
+#endif  //CS333_P2
 
   return p;
 }
@@ -599,7 +604,7 @@ procdump(void)
   }
 }
 
-//helper function for project 1
+//helper function for project 1 used with control-p from shell to output processes data
 #ifdef CS333_P1
 void
 procdumpP1(struct proc *p, char * state){
@@ -607,7 +612,7 @@ procdumpP1(struct proc *p, char * state){
 }
 #endif  //CS333_P1
 
-//helper function for project 2
+//helper function for project 2 used with control-p to output process data
 #ifdef CS333_P2
 void
 procdumpP2(struct proc *p, char * state){
@@ -618,6 +623,43 @@ procdumpP2(struct proc *p, char * state){
   else
     x = p->parent->pid;
 
-  cprintf("%d\t%s\t%d\t%d\t%d\t%d.%d\t%d.%d\t", p->pid,p->name,p->uid,p->gid,x,(ticks-p->start_ticks)/1000,(ticks-p->start_ticks)%1000,(p->cpu_ticks_total)/1000,(p->cpu_ticks_total)%1000);
+  cprintf("%d\t%s\t%d\t%d\t%d\t%d.%d\t%d.%d\t%s\t%d\t", p->pid,p->name,p->uid,p->gid,x,(ticks-p->start_ticks)/1000,(ticks-p->start_ticks)%1000,(p->cpu_ticks_total)/1000,(p->cpu_ticks_total)%1000,state,p->sz);
 }
-#endif  //CS333_P1
+#endif  //CS333_P2
+
+//getprocs definition, creates an array of processes that is coped from the ptable
+//which is used for output on our ps command this uses pointer arithmatic and checks
+//to make sure that we don't index out of the size of the ptable
+#ifdef CS333_P2
+int 
+getprocs(uint max, struct uproc * table){
+  
+  struct proc *p;
+  int count = 1;
+
+  // stop when we each end of proc array OR we hit max count for tests
+  for(p = ptable.proc; p < &ptable.proc[NPROC] || count < max; p++){
+
+    // check for init to avoid seg fault
+    if(p->state == UNUSED || p->state == EMBRYO)
+      continue;
+    if(p->parent == NULL)
+      table->ppid = p->pid;
+    else 
+      table->ppid = p->parent->pid;
+    table->pid = p->pid;
+    table->uid = p->uid;
+    table->gid = p->gid;
+    // need to do some arithmatic in PS program to get these to print out right like in procdump
+    table->elapsed_ticks = (ticks - p->start_ticks);
+    table->CPU_total_ticks = p->cpu_ticks_total;
+    table->size = p->sz;
+    strncpy(table->name,p->name,sizeof(p->name + 1));
+    strncpy(table->state, states[p->state],sizeof(states[p->state]+1));
+    count++;
+    table++;
+  }
+  return count;
+    
+}
+#endif  //CS333_P2

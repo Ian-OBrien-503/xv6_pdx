@@ -89,3 +89,5 @@ date.c
 testsetuid.c
 testuidgid.c
 p2-test.c
+uproc.h
+ps.c

@@ -9,6 +9,9 @@
 #ifdef PDX_XV6
 #include "pdx-kernel.h"
 #endif // PDX_XV6
+#ifdef CS333_P2
+#include "uproc.h"
+#endif  // CS333_P2
 
 
 int
@@ -117,7 +120,7 @@ sys_date(void)
 
 #ifdef CS333_P2
 // function checks for valid uid and returns error if not valid else it returns process uid
-uint
+int
 sys_getuid(void)
 {
   return myproc()->uid;
@@ -126,7 +129,7 @@ sys_getuid(void)
 
 #ifdef CS333_P2
 // function checks for valid gid and returns error if not valid else it  returns process gid
-uint
+int
 sys_getgid(void)
 {
   return myproc()->gid;
@@ -136,7 +139,7 @@ sys_getgid(void)
 #ifdef CS333_P2
 // function checks for null ppid and if it is gives it the pid as the ppid, this is only the 
 // case for the init process other than that it returns the "ppid" 
-uint
+int
 sys_getppid(void)
 {
   if(myproc()->parent == NULL)
@@ -150,9 +153,9 @@ sys_getppid(void)
 // function checks for valid range of available uid's if all are taken then return error flag
 // else set the uid to the next available one
 int
-sys_setuid(uint num)
+sys_setuid(void)
 {
-  int test = num;
+  int test;
   if (argint(0, &test) < 0)
     return -1;
   if (argint(0, &test) > 32767)
@@ -168,9 +171,9 @@ sys_setuid(uint num)
 // function checks for valid range of gid avaiable if all are taken then return error flag
 // else set the gid to the next available one
 int
-sys_setgid(uint num)
+sys_setgid(void)
 {
-  int test = num;
+  int test;
   if(argint(0, &test)<0)
     return -1;
   if(argint(0, &test)>32767)
@@ -182,3 +185,19 @@ sys_setgid(uint num)
 }
 #endif
 
+// function is called from ps.c to pass arguments to getprocs in proc.c
+#ifdef CS333_P2
+int 
+sys_getprocs(void)
+{
+  struct uproc *p;
+
+  if(argptr(0, (void*)&p, sizeof(struct uproc)) < 0)
+    return -1;
+  else{
+    int max = argptr(1,(void*)&p, sizeof(struct uproc) < 0);
+    getprocs(max, p); 
+    return 0;
+  }
+}
+#endif  //CS333_P2
