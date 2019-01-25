@@ -191,13 +191,14 @@ int
 sys_getprocs(void)
 {
   struct uproc *p;
+  int max;
+  cprintf("\n\tinSYSPROC CALL");
 
-  if(argptr(0, (void*)&p, sizeof(struct uproc)) < 0)
+  if(argint(0,&max)<0){
     return -1;
-  else{
-    int max = argptr(1,(void*)&p, sizeof(struct uproc) < 0);
-    getprocs(max, p); 
-    return 0;
   }
+  if(argptr(1, (void*)&p, max*sizeof(struct uproc)<0))
+    return -1;
+  return getprocs(max, p);
 }
 #endif  //CS333_P2

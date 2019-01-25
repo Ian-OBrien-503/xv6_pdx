@@ -633,33 +633,39 @@ procdumpP2(struct proc *p, char * state){
 #ifdef CS333_P2
 int 
 getprocs(uint max, struct uproc * table){
-  
+ 
   struct proc *p;
-  int count = 1;
+  int count = 0;
+  p = ptable.proc;
+  cprintf("\n\t%d\t%s", count, "#1 PROC.C, GETPROCS()");
 
+  // aquire lock for critical section
+  acquire(&ptable.lock);
   // stop when we each end of proc array OR we hit max count for tests
-  for(p = ptable.proc; p < &ptable.proc[NPROC] || count < max; p++){
+  for(int i = 0; p < &ptable.proc[NPROC] && i < max; ++i){
 
     // check for init to avoid seg fault
-    if(p->state == UNUSED || p->state == EMBRYO)
+    if(p[i].state == EMBRYO || p[i].state == UNUSED)
       continue;
-    if(p->parent == NULL)
-      table->ppid = p->pid;
+    // check for null parent so that we dont segfault on init process
+    if(p[i].parent == NULL)
+      table[i].ppid = p[i].pid;
     else 
-      table->ppid = p->parent->pid;
-    table->pid = p->pid;
-    table->uid = p->uid;
-    table->gid = p->gid;
+      table[i].ppid = p[i].parent[i].pid;
+    table[i].pid = p[i].pid;
+    table[i].uid = p[i].uid;
+    table[i].gid = p[i].gid;
     // need to do some arithmatic in PS program to get these to print out right like in procdump
-    table->elapsed_ticks = (ticks - p->start_ticks);
-    table->CPU_total_ticks = p->cpu_ticks_total;
-    table->size = p->sz;
-    strncpy(table->name,p->name,sizeof(p->name + 1));
-    strncpy(table->state, states[p->state],sizeof(states[p->state]+1));
+    table[i].elapsed_ticks = (ticks - p[i].start_ticks);
+    table[i].CPU_total_ticks = p[i].cpu_ticks_total;
+    table[i].size = p[i].sz;
+    safestrcpy(table[i].name,p[i].name,sizeof(p[i].name)/sizeof(char));
+    safestrcpy(table[i].state, states[p[i].state],sizeof(p[i].state)/sizeof(char));
     count++;
-    table++;
   }
+  //release lock after critical section
+  release(&ptable.lock);
+  cprintf("\n\t%d\t%s", count, "#2 PROC.C, GETPROCS()");
   return count;
-    
 }
 #endif  //CS333_P2
