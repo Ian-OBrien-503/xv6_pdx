@@ -356,7 +356,7 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
 #ifdef CS333_P2
-  uint ticks_out;
+  uint ticks_out = 0;
 #endif //CS333_P2
   c->proc = 0;
 #ifdef PDX_XV6
@@ -637,7 +637,6 @@ getprocs(uint max, struct uproc * table){
   struct proc *p;
   int count = 0;
   p = ptable.proc;
-  cprintf("\n\t%d\t%s", count, "#1 PROC.C, GETPROCS()");
 
   // aquire lock for critical section
   acquire(&ptable.lock);
@@ -651,7 +650,7 @@ getprocs(uint max, struct uproc * table){
     if(p[i].parent == NULL)
       table[i].ppid = p[i].pid;
     else 
-      table[i].ppid = p[i].parent[i].pid;
+      table[i].ppid = p[i].parent->pid;
     table[i].pid = p[i].pid;
     table[i].uid = p[i].uid;
     table[i].gid = p[i].gid;
@@ -659,13 +658,12 @@ getprocs(uint max, struct uproc * table){
     table[i].elapsed_ticks = (ticks - p[i].start_ticks);
     table[i].CPU_total_ticks = p[i].cpu_ticks_total;
     table[i].size = p[i].sz;
-    safestrcpy(table[i].name,p[i].name,sizeof(p[i].name)/sizeof(char));
-    safestrcpy(table[i].state, states[p[i].state],sizeof(p[i].state)/sizeof(char));
+    safestrcpy(table[i].name,p[i].name,STRSIZE);
+    safestrcpy(table[i].state, states[p[i].state],STRSIZE);
     count++;
   }
   //release lock after critical section
   release(&ptable.lock);
-  cprintf("\n\t%d\t%s", count, "#2 PROC.C, GETPROCS()");
   return count;
 }
 #endif  //CS333_P2
