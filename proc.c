@@ -904,31 +904,6 @@ procdumpP2(struct proc *p, char * state){
 }
 #endif  //CS333_P2
 
-// adding given implementation of initFreeList() and initProcessList()
-#ifdef CS333_P3
-static void
-initProcessLists()
-{
-  int i;
-
-  for(i = UNUSED; i < ZOMBIE; i++){
-  ptable.list[i].head = NULL;
-  ptable.list[i].tail = NULL;
-  }
-}
-
-static void
-initFreeList(void)
-{
-  struct proc *p;
-
-  for(p = ptable.proc; p < ptable.proc + NPROC; ++p){
-  p->state = UNUSED;
-  stateListAdd(&ptable.list[UNUSED],p);
-  }
-}
-#endif  //CS333_P3
-
 //getprocs definition, creates an array of processes that is coped from the ptable
 //which is used for output on our ps command this uses pointer arithmatic and checks
 //to make sure that we don't index out of the size of the ptable
@@ -969,3 +944,107 @@ getprocs(uint max, struct uproc * table){
   return count;
 }
 #endif  //CS333_P2
+
+//functionprototypes for p3
+#ifdef CS333_P3
+static void
+initProcessLists(void);
+static void
+initFreeList(void);
+static void
+stateListAdd(struct ptrs *list, struct proc *p);
+static void
+stateListRemove(struct ptrs *list, struct proc *p);
+static void
+assertState(struct proc*p, enum procstate state);
+#endif  //CS333_P3
+
+
+// adding given implementation of initFreeList() and initProcessList()
+#ifdef CS333_P3
+
+static void
+stateListAdd(struct ptrs list, struct proc *p)
+{
+  if((*list).head == NULL){
+    (*list).head = p;
+    (*list).tail = p;
+    p->next = NULL;
+  } else{
+    ((*list).tail)->next = p;
+    (*list).tail = ((*list).tail)->next;
+    ((*list.tail)->next = NULL;
+  }
+}
+
+static int
+StateListRemove(struct ptrs *list, struct proc *p)
+{
+  if((*list).head == NULL || (*list).tail == NULL || p == NULL){
+    return -1;
+  }
+
+  struct proc *current = (*list).head;
+  struct proc *previous = 0;
+
+  if(current == p){
+    (*list).head = ((*list).head)->next;
+    //prevent tail remaining assigned when we've removed the only item on the
+    //list
+    if((*list).tail == p){
+      (*list).tail = NULL;    
+    }
+    return 0;
+  }
+
+  while(current){
+    if(current == p){
+      break; 
+    } 
+    previous = current;
+    current = current -> next;
+  }
+
+  //process not found, hit eject
+  if(current == NULL){ 
+    return -1; 
+  }
+
+  //process found. set the appropriate next pointer
+  if(current == (*list).tail){
+    (*list).tail = previous;
+    ((*list).tail)->next = NULL;
+  } else {
+    previous->next = current->next; 
+  }
+
+  //make sure p->next doesnt point into the list
+  p->next = NULL;
+
+  return 0;
+}
+
+// initalize all list head and tail to null
+static void
+initProcessLists()
+{
+  int i;
+
+  for(i = UNUSED; i < ZOMBIE; i++){
+  ptable.list[i].head = NULL;
+  ptable.list[i].tail = NULL;
+  }
+}
+
+// set all procs to UNUSED state
+initFreeList(void)
+{
+  struct proc *p;
+
+  for(p = ptable.proc; p < ptable.proc + NPROC; ++p){
+  p->state = UNUSED;
+  stateListAdd(&ptable.list[UNUSED],p);
+  }
+}
+#endif  //CS333_P3
+
