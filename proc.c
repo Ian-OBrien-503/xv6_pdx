@@ -904,6 +904,31 @@ procdumpP2(struct proc *p, char * state){
 }
 #endif  //CS333_P2
 
+// adding given implementation of initFreeList() and initProcessList()
+#ifdef CS333_P3
+static void
+initProcessLists()
+{
+  int i;
+
+  for(i = UNUSED; i < ZOMBIE; i++){
+  ptable.list[i].head = NULL;
+  ptable.list[i].tail = NULL;
+  }
+}
+
+static void
+initFreeList(void)
+{
+  struct proc *p;
+
+  for(p = ptable.proc; p < ptable.proc + NPROC; ++p){
+  p->state = UNUSED;
+  stateListAdd(&ptable.list[UNUSED],p);
+  }
+}
+#endif  //CS333_P3
+
 //getprocs definition, creates an array of processes that is coped from the ptable
 //which is used for output on our ps command this uses pointer arithmatic and checks
 //to make sure that we don't index out of the size of the ptable
