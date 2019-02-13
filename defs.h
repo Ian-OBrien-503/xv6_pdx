@@ -123,6 +123,10 @@ void            procdumpP1(struct proc*, char * state);
 void            procdumpP2(struct proc*, char * state);
 int             getprocs(uint max, struct uproc * table);
 #endif  //CS333_P2
+#ifdef CS333_P3
+void            freedump(void);
+void            readydump(void);
+#endif  //CS333_P3  
 void            scheduler(void) __attribute__((noreturn));
 void            sched(void);
 void            setproc(struct proc*);

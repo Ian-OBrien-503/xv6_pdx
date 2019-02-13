@@ -36,8 +36,8 @@ enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
 struct proc {
-#ifdef CS333_P3_
-  struct proc *next;          // next pointer for process list
+#ifdef CS333_P3
+  struct proc* next;          // next pointer for process list
 #endif  //CS333_P3
 #ifdef CS333_P1
   uint start_ticks;            // records time a process was started

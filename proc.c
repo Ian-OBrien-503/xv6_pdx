@@ -48,6 +48,22 @@ extern void forkret(void);
 extern void trapret(void);
 static void wakeup1(void* chan);
 
+//functionprototypes for p3
+#ifdef CS333_P3
+static void
+initProcessLists(void);
+static void
+initFreeList(void);
+static void
+stateListAdd(struct ptrs *list, struct proc *p);
+static int 
+stateListRemove(struct ptrs *list, struct proc *p);
+static void
+assertState(struct proc*p, enum procstate state);
+#endif  //CS333_P3
+
+
+
 void
 pinit(void)
 {
@@ -111,13 +127,20 @@ allocproc(void)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == UNUSED) {
       found = 1;
+#ifdef CS333_P3
+    assertState(p,p->state);
+    stateListRemove(&ptable.list[UNUSED], p);
+    p->state = EMBRYO;
+    stateListAdd(&ptable.list[EMBRYO], p);
+#else
+    p->state = EMBRYO;
+#endif  //CS333_P3
       break;
     }
   if (!found) {
     release(&ptable.lock);
     return 0;
   }
-  p->state = EMBRYO;
   p->pid = nextpid++;
   // GID and UID are #defined 0 in pdx.h file
 #ifdef CS333_P2
@@ -165,6 +188,13 @@ userinit(void)
   struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
 
+#ifdef CS333_P3
+  acquire(&ptable.lock);
+  initProcessLists();
+  initFreeList();
+  release(&ptable.lock);
+#endif
+
   p = allocproc();
 
   initproc = p;
@@ -188,13 +218,22 @@ userinit(void)
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
 
+#ifdef CS333_P3
+  acquire(&ptable.lock);
+  stateListRemove(&ptable.list[UNUSED],p);
+  assertState(p, p->state);
+  p->state=RUNNABLE;
+  stateListAdd(&ptable.list[RUNNABLE], p);
+  release(&ptable.lock);
+#else
+  acquire(&ptable.lock);
+  p->state = RUNNABLE;
+  release(&ptable.lock);
+#endif  //CS333_P3
   // this assignment to p->state lets other cores
   // run this process. the acquire forces the above
   // writes to be visible, and the lock is also needed
   // because the assignment might not be atomic.
-  acquire(&ptable.lock);
-  p->state = RUNNABLE;
-  release(&ptable.lock);
 }
 
 // Grow current process's memory by n bytes.
@@ -945,26 +984,11 @@ getprocs(uint max, struct uproc * table){
 }
 #endif  //CS333_P2
 
-//functionprototypes for p3
-#ifdef CS333_P3
-static void
-initProcessLists(void);
-static void
-initFreeList(void);
-static void
-stateListAdd(struct ptrs *list, struct proc *p);
-static void
-stateListRemove(struct ptrs *list, struct proc *p);
-static void
-assertState(struct proc*p, enum procstate state);
-#endif  //CS333_P3
-
-
 // adding given implementation of initFreeList() and initProcessList()
 #ifdef CS333_P3
 
 static void
-stateListAdd(struct ptrs list, struct proc *p)
+stateListAdd(struct ptrs* list, struct proc *p)
 {
   if((*list).head == NULL){
     (*list).head = p;
@@ -973,12 +997,12 @@ stateListAdd(struct ptrs list, struct proc *p)
   } else{
     ((*list).tail)->next = p;
     (*list).tail = ((*list).tail)->next;
-    ((*list.tail)->next = NULL;
+    ((*list).tail)->next = NULL;
   }
 }
 
 static int
-StateListRemove(struct ptrs *list, struct proc *p)
+stateListRemove(struct ptrs *list, struct proc *p)
 {
   if((*list).head == NULL || (*list).tail == NULL || p == NULL){
     return -1;
@@ -1037,6 +1061,7 @@ initProcessLists()
 }
 
 // set all procs to UNUSED state
+static void
 initFreeList(void)
 {
   struct proc *p;
@@ -1046,5 +1071,64 @@ initFreeList(void)
   stateListAdd(&ptable.list[UNUSED],p);
   }
 }
+
+
+// check state and throw panic and crash if not doing what expected
+static void
+assertState(struct proc*p, enum procstate state)
+{
+  if( p->state != state || !p)
+  {
+    cprintf("%s != %s", p->state, state);
+    panic("\n\t ASSERT STATE PANIC!!");
+  }
+}
+
+// print out # of procs on  free/UNUSED list
+void 
+freedump(void)
+{
+  acquire(&ptable.lock);
+  struct proc *temp = ptable.list[UNUSED].head;
+  int count = 0;
+
+  if(!temp)
+    cprintf("FREE LIST SIZE: %d PROCESSES\n",count);
+  else
+  {
+    while(temp)
+    {
+      temp = temp->next;
+      ++count;
+    }
+    cprintf("FREE LIST SIZE: %d PROCESSES\n",count);
+  }
+  release(&ptable.lock);
+}
+
+// print out PID's from ready list procs 
+void 
+readydump(void)
+{
+  acquire(&ptable.lock);
+  struct proc *temp = ptable.list[RUNNABLE].head;
+
+  if(!temp)
+    cprintf("\n\tEMPTY, NO RUNNABLE PROCS ON LIST");
+  else
+  {
+    while(temp)
+    {
+      if(temp->next == 0)
+        cprintf(" %d\n ", temp->pid);
+      else
+        cprintf(" %d ->", temp->pid);
+      temp = temp->next;
+    }
+  }
+  release(&ptable.lock);
+}
+
 #endif  //CS333_P3
+
 

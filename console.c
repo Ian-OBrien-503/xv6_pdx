@@ -192,6 +192,10 @@ void
 consoleintr(int (*getc)(void))
 {
   int c, doprocdump = 0;
+#ifdef CS333_P3
+  int dofreedump = 0;
+  int doreadydump = 0;
+#endif  //CS333_P3
 
   acquire(&cons.lock);
   while((c = getc()) >= 0){
@@ -200,6 +204,14 @@ consoleintr(int (*getc)(void))
       // procdump() locks cons.lock indirectly; invoke later
       doprocdump = 1;
       break;
+#ifdef CS333_P3
+    case C('F'):
+      dofreedump = 1;
+      break;
+    case C('R'):
+      doreadydump = 1;
+      break;
+#endif  //CS333_P3  
     case C('U'):  // Kill line.
       while(input.e != input.w &&
             input.buf[(input.e-1) % INPUT_BUF] != '\n'){
@@ -230,6 +242,12 @@ consoleintr(int (*getc)(void))
   if(doprocdump) {
     procdump();  // now call procdump() wo. cons.lock held
   }
+#ifdef CS333_P3
+  else if(dofreedump)
+    freedump();
+  else if(doreadydump)
+    readydump();
+#endif  //CS333_P3
 }
 
 int
