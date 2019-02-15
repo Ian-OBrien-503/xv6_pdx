@@ -693,10 +693,15 @@ yield(void)
 {
   struct proc *curproc = myproc();
 
+  if(ptable.list[RUNNING].head){
   acquire(&ptable.lock);  //DOC: yieldlock
+  stateListRemove(&ptable.list[RUNNING], curproc);\
+  assertState(curproc, RUNNING);
   curproc->state = RUNNABLE;
+  stateListAdd(&ptable.list[RUNNABLE], curproc);
   sched();
   release(&ptable.lock);
+  }
 }
 #else
 // Give up the CPU for one scheduling round.
