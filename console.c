@@ -195,6 +195,8 @@ consoleintr(int (*getc)(void))
 #ifdef CS333_P3
   int dofreedump = 0;
   int doreadydump = 0;
+  int dosleepydump = 0;
+  int dozombiedump = 0;
 #endif  //CS333_P3
 
   acquire(&cons.lock);
@@ -210,6 +212,12 @@ consoleintr(int (*getc)(void))
       break;
     case C('R'):
       doreadydump = 1;
+      break;
+    case C('S'):
+      dosleepydump = 1;
+      break;
+    case C('Z'):
+      dozombiedump = 1;
       break;
 #endif  //CS333_P3  
     case C('U'):  // Kill line.
@@ -239,14 +247,17 @@ consoleintr(int (*getc)(void))
     }
   }
   release(&cons.lock);
-  if(doprocdump) {
-    procdump();  // now call procdump() wo. cons.lock held
-  }
+  if(doprocdump)
+    procdump();  // now call procdump() wo. cons.lock hel
 #ifdef CS333_P3
   else if(dofreedump)
     freedump();
   else if(doreadydump)
     readydump();
+  else if(dosleepydump)
+    sleepydump();
+  else if(dozombiedump)
+    zombiedump();
 #endif  //CS333_P3
 }
 

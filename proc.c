@@ -128,12 +128,9 @@ allocproc(void)
     if(p->state == UNUSED) {
       found = 1;
 #ifdef CS333_P3
-    assertState(p,p->state);
     stateListRemove(&ptable.list[UNUSED], p);
-    p->state = EMBRYO;
+    assertState(p,p->state);
     stateListAdd(&ptable.list[EMBRYO], p);
-#else
-    p->state = EMBRYO;
 #endif  //CS333_P3
       break;
     }
@@ -141,6 +138,7 @@ allocproc(void)
     release(&ptable.lock);
     return 0;
   }
+  p->state = EMBRYO;
   p->pid = nextpid++;
   // GID and UID are #defined 0 in pdx.h file
 #ifdef CS333_P2
@@ -151,6 +149,14 @@ allocproc(void)
 
   // Allocate kernel stack.
   if((p->kstack = kalloc()) == 0){
+#ifdef CS333_P3
+  acquire(&ptable.lock);
+  stateListRemove(&ptable.list[EMBRYO], p);
+  assertState(p, EMBRYO);
+  stateListAdd(&ptable.list[UNUSED],p);
+#else
+  p->state = UNUSED;
+#endif
     p->state = UNUSED;
     return 0;
   }
@@ -220,8 +226,8 @@ userinit(void)
 
 #ifdef CS333_P3
   acquire(&ptable.lock);
-  stateListRemove(&ptable.list[UNUSED],p);
-  assertState(p, p->state);
+  stateListRemove(&ptable.list[EMBRYO],p);
+  assertState(p, EMBRYO);
   p->state=RUNNABLE;
   stateListAdd(&ptable.list[RUNNABLE], p);
   release(&ptable.lock);
@@ -300,10 +306,19 @@ fork(void)
   np->uid = curproc->uid; 
 #endif //CS333_P2
 
+
+#ifdef CS333_P3
+  acquire(&ptable.lock);
+  stateListRemove(&ptable.list[EMBRYO], np);
+  assertState(np, EMBRYO);
+  np->state = RUNNABLE;
+  stateListAdd(&ptable.list[RUNNABLE], np);
+  release(&ptable.lock);
+#else
   acquire(&ptable.lock);
   np->state = RUNNABLE;
   release(&ptable.lock);
-
+#endif  //CS333_P3
   return pid;
 }
 
@@ -539,7 +554,12 @@ scheduler(void)
 #endif //CS333_P2
       c->proc = p;
       switchuvm(p);
+      //added for P3
+      stateListRemove(&ptable.list[RUNNABLE], p);
+      assertState(p, RUNNABLE);
       p->state = RUNNING;
+      //end add for p3
+      stateListAdd(&ptable.list[RUNNING], p);
       swtch(&(c->scheduler), p->context);
       switchkvm();
 
@@ -737,6 +757,12 @@ sleep(void *chan, struct spinlock *lk)
 
   // Tidy up.
   p->chan = 0;
+  
+  //ADDED FOR P3
+  stateListRemove(&ptable.list[RUNNING], p);
+  assertState(p, RUNNING);
+  p->state = SLEEPING;
+  stateListAdd(&ptable.list[SLEEPING], p);
 
   // Reacquire original lock.
   if(lk != &ptable.lock){  //DOC: sleeplock2
@@ -1093,7 +1119,7 @@ freedump(void)
   int count = 0;
 
   if(!temp)
-    cprintf("FREE LIST SIZE: %d PROCESSES\n",count);
+    cprintf("\n\tFREE LIST SIZE: %d PROCESSES",count);
   else
   {
     while(temp)
@@ -1101,7 +1127,7 @@ freedump(void)
       temp = temp->next;
       ++count;
     }
-    cprintf("FREE LIST SIZE: %d PROCESSES\n",count);
+    cprintf("\n\tFREE LIST SIZE: %d PROCESSES",count);
   }
   release(&ptable.lock);
 }
@@ -1113,8 +1139,10 @@ readydump(void)
   acquire(&ptable.lock);
   struct proc *temp = ptable.list[RUNNABLE].head;
 
+  cprintf("\n\tREADY LIST ------> ");
+
   if(!temp)
-    cprintf("\n\tEMPTY, NO RUNNABLE PROCS ON LIST");
+    cprintf("EMPTY, NO RUNNABLE PROCS ON LIST");
   else
   {
     while(temp)
@@ -1123,6 +1151,55 @@ readydump(void)
         cprintf(" %d\n ", temp->pid);
       else
         cprintf(" %d ->", temp->pid);
+      temp = temp->next;
+    }
+  }
+  release(&ptable.lock);
+}
+
+// print out PID's from sleepy list procs 
+void 
+sleepydump(void)
+{
+  acquire(&ptable.lock);
+  struct proc *temp = ptable.list[SLEEPING].head;
+
+  cprintf("\n\tSLEEPY LIST ----> ");
+  if(!temp)
+    cprintf("EMPTY, NO SLEEPY PROCS ON LIST");
+  else
+  {
+    while(temp)
+    {
+      if(temp -> next == 0)
+        cprintf(" %d", temp->pid);
+      else
+        cprintf(" %d -> ", temp->pid);
+      temp = temp->next;
+    }
+  }
+  release(&ptable.lock);
+}
+
+// print out zombie process pairs and their parents
+void zombiedump(void)
+{
+  acquire(&ptable.lock);
+  struct proc * temp = ptable.list[ZOMBIE].head;
+
+  cprintf("\n\tZOMBIE LIST PROCESSES --->");
+
+  if(!temp)
+    cprintf(" EMPTY LIST ");
+  else
+  {
+    while(temp)
+    {
+      if(temp->next == 0)
+        cprintf("(PID%d, PPID%d)\n", temp->pid, temp->parent->pid);
+      else
+        cprintf("(PID%d, PPID%d) -> ", temp->pid, temp->parent->pid);
+
       temp = temp->next;
     }
   }

@@ -126,6 +126,8 @@ int             getprocs(uint max, struct uproc * table);
 #ifdef CS333_P3
 void            freedump(void);
 void            readydump(void);
+void            sleepydump(void);
+void            zombiedump(void);
 #endif  //CS333_P3  
 void            scheduler(void) __attribute__((noreturn));
 void            sched(void);
