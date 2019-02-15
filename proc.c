@@ -123,15 +123,20 @@ allocproc(void)
   char *sp;
 
   acquire(&ptable.lock);
+#ifdef CS333_P3
+    if(ptable.list[UNUSED].head){
+      p = ptable.list[UNUSED].head;
+      stateListRemove(&ptable.list[UNUSED], p);
+      assertState(p,p->state);
+      p->state = EMBRYO;
+      stateListAdd(&ptable.list[EMBRYO], p);
+    }
+#endif  //CS333_P3
+
   int found = 0;
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == UNUSED) {
       found = 1;
-#ifdef CS333_P3
-    stateListRemove(&ptable.list[UNUSED], p);
-    assertState(p,p->state);
-    stateListAdd(&ptable.list[EMBRYO], p);
-#endif  //CS333_P3
       break;
     }
   if (!found) {
