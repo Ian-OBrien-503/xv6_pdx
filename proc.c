@@ -115,35 +115,22 @@ myproc(void) {
 // If found, change state to EMBRYO and initialize
 // state required to run in the kernel.
 // Otherwise return 0.
-
+#ifdef CS333_P3
 static struct proc*
 allocproc(void)
 {
-  struct proc *p;
+  struct proc *p = ptable.list[UNUSED].head;
   char *sp;
 
   acquire(&ptable.lock);
 #ifdef CS333_P3
     if(ptable.list[UNUSED].head){
-      p = ptable.list[UNUSED].head;
       stateListRemove(&ptable.list[UNUSED], p);
-      assertState(p,p->state);
+      assertState(p,UNUSED);
       p->state = EMBRYO;
       stateListAdd(&ptable.list[EMBRYO], p);
     }
 #endif  //CS333_P3
-
-  int found = 0;
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == UNUSED) {
-      found = 1;
-      break;
-    }
-  if (!found) {
-    release(&ptable.lock);
-    return 0;
-  }
-  p->state = EMBRYO;
   p->pid = nextpid++;
   // GID and UID are #defined 0 in pdx.h file
 #ifdef CS333_P2
@@ -190,6 +177,64 @@ allocproc(void)
 
   return p;
 }
+#else
+static struct proc*
+allocproc(void)
+{
+  struct proc *p;
+  char *sp;
+
+  acquire(&ptable.lock);
+  int found = 0;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    if(p->state == UNUSED) {
+      found = 1;
+      break;
+    }
+  if (!found) {
+    release(&ptable.lock);
+    return 0;
+  }
+  p->state = EMBRYO;
+  p->pid = nextpid++;
+  // GID and UID are #defined 0 in pdx.h file
+#ifdef CS333_P2
+  p->gid = GID;
+  p->uid = UID;
+#endif  //CS333_P2
+  release(&ptable.lock);
+
+  // Allocate kernel stack.
+  if((p->kstack = kalloc()) == 0){
+    p->state = UNUSED;
+    return 0;
+  }
+  sp = p->kstack + KSTACKSIZE;
+
+  // Leave room for trap frame.
+  sp -= sizeof *p->tf;
+  p->tf = (struct trapframe*)sp;
+
+  // Set up new context to start executing at forkret,
+  // which returns to trapret.
+  sp -= 4;
+  *(uint*)sp = (uint)trapret;
+
+  sp -= sizeof *p->context;
+  p->context = (struct context*)sp;
+  memset(p->context, 0, sizeof *p->context);
+  p->context->eip = (uint)forkret;
+#ifdef CS333_P1
+  p->start_ticks = ticks;
+#endif // CS333_p1
+#ifdef CS333_P2
+  p->cpu_ticks_in = P2TICKS;
+  p->cpu_ticks_total = P2TICKS;
+#endif  //CS333_P2
+
+  return p;
+}
+#endif  //CS333_P3
 
 //PAGEBREAK: 32
 // Set up first user process.
@@ -513,7 +558,7 @@ wait(void)
 }
 #endif  //CS333_P3
 
-#ifdef CS333_P3
+
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -522,6 +567,7 @@ wait(void)
 //  - swtch to start running that process
 //  - eventually that process transfers control
 //      via swtch back to the scheduler.
+#ifdef CS333_P3
 void
 scheduler(void)
 {
