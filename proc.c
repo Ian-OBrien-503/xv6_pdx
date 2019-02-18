@@ -414,7 +414,10 @@ exit(void)
   }
 
   // Jump into the scheduler, never to return.
+  stateListRemove(&ptable.list[RUNNING], curproc);
+  assertState(curproc, RUNNING);
   curproc->state = ZOMBIE;
+  stateListAdd(&ptable.list[ZOMBIE], curproc);
   sched();
   panic("zombie exit");
 }
@@ -495,11 +498,14 @@ wait(void)
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;
+        stateListRemove(&ptable.list[ZOMBIE], p);
+        assertState(p, ZOMBIE);
         p->state = UNUSED;
+        stateListAdd(&ptable.list[UNUSED],p);
         release(&ptable.lock);
         return pid;
       }
-    }
+  }
 
     // No point waiting if we don't have any children.
     if(!havekids || curproc->killed){
@@ -590,7 +596,8 @@ scheduler(void)
 #endif // PDX_XV6
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    p = ptable.list[RUNNABLE].head;
+    if(p){
       if(p->state != RUNNABLE)
         continue;
 
@@ -739,15 +746,13 @@ yield(void)
 {
   struct proc *curproc = myproc();
 
-  if(ptable.list[RUNNING].head){
   acquire(&ptable.lock);  //DOC: yieldlock
-  stateListRemove(&ptable.list[RUNNING], curproc);\
+  stateListRemove(&ptable.list[RUNNING], curproc);
   assertState(curproc, RUNNING);
   curproc->state = RUNNABLE;
   stateListAdd(&ptable.list[RUNNABLE], curproc);
   sched();
   release(&ptable.lock);
-  }
 }
 #else
 // Give up the CPU for one scheduling round.
@@ -807,18 +812,17 @@ sleep(void *chan, struct spinlock *lk)
   }
   // Go to sleep.
   p->chan = chan;
+  stateListRemove(&ptable.list[RUNNING], p);
+  assertState(p, RUNNING);
   p->state = SLEEPING;
+  stateListAdd(&ptable.list[SLEEPING], p);
+
 
   sched();
 
   // Tidy up.
   p->chan = 0;
   
-  //ADDED FOR P3
-  stateListRemove(&ptable.list[RUNNING], p);
-  assertState(p, RUNNING);
-  p->state = SLEEPING;
-  stateListAdd(&ptable.list[SLEEPING], p);
 
   // Reacquire original lock.
   if(lk != &ptable.lock){  //DOC: sleeplock2
@@ -873,9 +877,14 @@ wakeup1(void *chan)
 {
   struct proc *p;
 
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == SLEEPING && p->chan == chan)
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; ++p){
+    if(p->state == SLEEPING && p->chan == chan){
+      stateListRemove(&ptable.list[SLEEPING], p);
+      assertState(p, SLEEPING);
       p->state = RUNNABLE;
+      stateListAdd(&ptable.list[RUNNABLE], p);
+    }
+  }
 }
 #else
 //PAGEBREAK!
@@ -915,8 +924,12 @@ kill(int pid)
     if(p->pid == pid){
       p->killed = 1;
       // Wake process from sleep if necessary.
-      if(p->state == SLEEPING)
+      if(p->state == SLEEPING){
+        stateListRemove(&ptable.list[SLEEPING], p);
+        assertState(p,SLEEPING);
         p->state = RUNNABLE;
+        stateListAdd(&ptable.list[RUNNABLE], p);
+      }
       release(&ptable.lock);
       return 0;
     }

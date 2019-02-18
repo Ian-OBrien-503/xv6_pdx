@@ -93,3 +93,6 @@ uproc.h
 ps.c
 time.c
 testtest2.c
+
+#added for p3
+p3-test.c
