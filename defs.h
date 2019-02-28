@@ -137,6 +137,13 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
+#ifdef CS333_P4
+int             setpriority(int pid, int priority);
+int             getpriority(int pid);
+void            periodicPromotion();
+void            procdumpP4(struct proc*, char *state);
+#endif
+
 
 // swtch.S
 void            swtch(struct context**, struct context*);

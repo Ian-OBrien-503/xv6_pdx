@@ -17,6 +17,13 @@
 #define MAX 72 
 #define STRSIZE 10 
 
+//for project #4
+#define MAXPRIO 5
+#define DEFAULT_BUDGET 1000
+#define TICKS_TO_PROMOTE 100
+//end add for project #4
+
+
 #define NUL 0
 #ifndef NULL
 #define NULL NUL

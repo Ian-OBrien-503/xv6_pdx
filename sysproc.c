@@ -201,3 +201,37 @@ sys_getprocs(void)
   return getprocs(max, p);
 }
 #endif  //CS333_P2
+
+#ifdef CS333_P4
+int
+sys_setpriority(void)
+{
+  //find proc in runnable, running, sleeping, or embryo and update pid
+  //return 0 on success return -1 for fail
+  int priority;
+  int pid;
+  // if specify negative pid
+  if(argint(0, &pid) < 0)
+    return -1;
+  // if specify negative priority
+  if(argint(1, &priority) < 0)
+    return -1;
+  // if specify priority greater than max
+  if(priority > MAXPRIO)
+    return -1;
+  else
+    return setpriority(pid, priority);
+}
+
+int
+sys_getpriority(void)
+{
+  //return pid if proc exists return 01 if failure
+  int test;
+  // if specify a negative pid we fail
+  if(argint(0, &test) < 0)
+    return -1;
+  else 
+    return getpriority(test);
+}
+#endif  //CS333_P4

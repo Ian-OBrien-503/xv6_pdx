@@ -36,6 +36,10 @@ enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
 struct proc {
+#ifdef CS333_P4
+  int priority;
+  int budget;
+#endif
 #ifdef CS333_P3
   struct proc* next;          // next pointer for process list
 #endif  //CS333_P3

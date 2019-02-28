@@ -39,6 +39,10 @@ static struct {
 #ifdef CS333_P3
   struct ptrs list [statecount];
 #endif //CS333_P3
+#ifdef CS333_P4
+  struct ptrs ready[MAXPRIO+1];
+  uint PromoteAtTime;
+#endif
 } ptable;
 
 static struct proc *initproc;
@@ -174,6 +178,10 @@ allocproc(void)
   p->cpu_ticks_in = P2TICKS;
   p->cpu_ticks_total = P2TICKS;
 #endif  //CS333_P2
+#ifdef CS333_P4
+  p->priority = MAXPRIO;
+  p->budget = DEFAULT_BUDGET;
+#endif
 
   return p;
 }
@@ -975,7 +983,7 @@ procdump(void)
   char *state;
   uint pc[10];
 
-#if defined(CS333_P3P4)
+#if defined(CS333_P4)
 #define HEADER "\nPID\tName\tUID\tGID\tPPID\tPrio\tElapsed\tCPU\tState\tSize\t PCs\n"
 #elif defined(CS333_P2)
 #define HEADER "\nPID\tName\tUID\tGID\tPPID\tElapsed\tCPU\tState\tSize\t PCs\n"
@@ -996,8 +1004,8 @@ procdump(void)
     else
       state = "???";
 
-#if defined(CS333_P3P4)
-    procdumpP3P4(p, state);
+#if defined(CS333_P4)
+    procdumpP4(p, state);
 #elif defined(CS333_P2)
     procdumpP2(p, state);
 #elif defined(CS333_P1)
@@ -1037,45 +1045,57 @@ procdumpP2(struct proc *p, char * state){
   cprintf("%d\t%s\t%d\t%d\t%d\t%d.%d\t%d.%d\t%s\t%d\t", p->pid,p->name,p->uid,p->gid,x,(ticks-p->start_ticks)/1000,(ticks-p->start_ticks)%1000,(p->cpu_ticks_total)/1000,(p->cpu_ticks_total)%1000,state,p->sz);
 }
 #endif  //CS333_P2
+#ifdef CS333_P4
+void
+procdumpP4(struct proc *p, char * state){
+  uint x;
+  if(p->parent == NULL){
+    x = p->pid; 
+  }
+  else
+    x = p->parent->pid;
+
+  cprintf("%d\t%s\t%d\t%d\t%d\t%d\t%d.%d\t%d.%d\t%s\t%d\t", p->pid,p->name,p->uid,p->gid,x,p->priority,(ticks-p->start_ticks)/1000,(ticks-p->start_ticks)%1000,(p->cpu_ticks_total)/1000,(p->cpu_ticks_total)%1000,state,p->sz);
+}
+#endif  //CS333_P4
+
 
 //getprocs definition, creates an array of processes that is coped from the ptable
 //which is used for output on our ps command this uses pointer arithmatic and checks
 //to make sure that we don't index out of the size of the ptable
 #ifdef CS333_P2
-int 
-getprocs(uint max, struct uproc * table){
- 
-  struct proc *p;
-  int count = 0;
-  p = ptable.proc;
+int
+getprocs(uint max, struct uproc * table)
+{
+    struct proc *p;
+    int counter = 0;
 
-  // aquire lock for critical section
-  acquire(&ptable.lock);
-  // stop when we each end of proc array OR we hit max count for tests
-  for(int i = 0; p < &ptable.proc[NPROC] && i < max; ++i){
+    acquire(&ptable.lock);
+    for(p = ptable.proc; p < &ptable.proc[NPROC] && counter < max; ++p)
+    {
+        if(p->state == UNUSED || p->state == EMBRYO)
+            continue;
+        table->pid = p->pid;
+        table->uid = p->uid;
+        table->gid = p->gid;
+        if(p->pid == 1)
+            table->ppid = 1;
+        else
+            table->ppid = p->parent->pid;
+#ifdef CS333_P4
+        table->priority = p->priority;
+#endif
 
-    // check for init to avoid seg fault
-    if(p[i].state == EMBRYO || p[i].state == UNUSED)
-      continue;
-    // check for null parent so that we dont segfault on init process
-    if(p[i].parent == NULL)
-      table[i].ppid = p[i].pid;
-    else 
-      table[i].ppid = p[i].parent->pid;
-    table[i].pid = p[i].pid;
-    table[i].uid = p[i].uid;
-    table[i].gid = p[i].gid;
-    // need to do some arithmatic in PS program to get these to print out right like in procdump
-    table[i].elapsed_ticks = (ticks - p[i].start_ticks);
-    table[i].CPU_total_ticks = p[i].cpu_ticks_total;
-    table[i].size = p[i].sz;
-    safestrcpy(table[i].name,p[i].name,STRSIZE);
-    safestrcpy(table[i].state, states[p[i].state],STRSIZE);
-    count++;
-  }
-  //release lock after critical section
-  release(&ptable.lock);
-  return count;
+        table->elapsed_ticks = ticks - p->start_ticks;
+        table->CPU_total_ticks = p->cpu_ticks_total;
+        table->size = p->sz;
+        safestrcpy(table->state, states[p->state], sizeof(table->state)/sizeof(char));
+        safestrcpy(table->name, p->name, sizeof(table->name)/sizeof(char));
+        table++;
+        counter++;
+    }
+    release(&ptable.lock);
+    return counter;
 }
 #endif  //CS333_P2
 
@@ -1201,6 +1221,39 @@ freedump(void)
   release(&ptable.lock);
 }
 
+
+#ifdef CS333_P4
+void
+readydump(void)
+{
+    acquire(&ptable.lock);
+
+    cprintf("Ready List Processes:\n");
+
+    for(int i = MAXPRIO; i >= 0; i--)
+    {
+        cprintf("%d: ",i);
+        if(!ptable.ready[i].head)
+            cprintf("List is Empty!\n");
+        else
+        {
+            struct proc * curr = ptable.ready[i].head;
+            while(curr)
+            {
+                if(curr->next == 0)
+                    cprintf("(%d, %d)\n", curr->pid, curr->budget);
+                else
+                    cprintf("(%d, %d) -> ", curr->pid, curr->budget);
+
+                curr = curr->next;
+            }
+        }
+    }
+
+    release(&ptable.lock);
+}
+#else
+
 // print out PID's from ready list procs 
 void 
 readydump(void)
@@ -1225,6 +1278,7 @@ readydump(void)
   }
   release(&ptable.lock);
 }
+#endif
 
 // print out PID's from sleepy list procs 
 void 
@@ -1277,4 +1331,195 @@ void zombiedump(void)
 
 #endif  //CS333_P3
 
+#ifdef CS333_P4
+// find pid to set its priority to desired value
+int 
+setpriority(int pid, int priority)
+{
+  // double check bounds
+  if(pid <0 || priority <0 || priority > MAXPRIO)
+    return -1;
 
+  struct proc *p;
+  acquire(&ptable.lock);
+
+  // check runnable list
+  for(int i = 0; i < 0; i++)
+  {
+    for(p = ptable.list[RUNNABLE].head; p; p = p->next)
+    {
+      if(p->pid == pid)
+        if(p->priority != priority)
+        {
+          p->priority = priority; 
+          p->budget = DEFAULT_BUDGET;
+        }
+      release(&ptable.lock);
+      return 0;
+    }
+  }
+
+  // check running list
+  for(int i = 0; i < 0; i++)
+  {
+    for(p = ptable.list[RUNNING].head; p; p = p->next)
+    {
+      if(p->pid == pid)
+        if(p->priority != priority)
+        {
+          p->priority = priority; 
+          p->budget = DEFAULT_BUDGET;
+        }
+      release(&ptable.lock);
+      return 0;
+    }
+  }
+
+  // check sleeping list
+  for(int i = 0; i < 0; i++)
+  {
+    for(p = ptable.list[SLEEPING].head; p; p = p->next)
+    {
+      if(p->pid == pid)
+        if(p->priority != priority)
+        {
+          p->priority = priority; 
+          p->budget = DEFAULT_BUDGET;
+        }
+      release(&ptable.lock);
+      return 0;
+    }
+  }
+
+  // check sleeping list
+  for(int i = 0; i < 0; i++)
+  {
+    for(p = ptable.list[SLEEPING].head; p; p = p->next)
+    {
+      if(p->pid == pid)
+        if(p->priority != priority)
+        {
+          p->priority = priority; 
+          p->budget = DEFAULT_BUDGET;
+        }
+      release(&ptable.lock);
+      return 0;
+    }
+  }
+
+  // check embryo list
+  for(int i = 0; i < 0; i++)
+  {
+    for(p = ptable.list[EMBRYO].head; p; p = p->next)
+    {
+      if(p->pid == pid)
+        if(p->priority != priority)
+        {
+          p->priority = priority; 
+        }
+      release(&ptable.lock);
+      return 0;
+    }
+  }
+
+  //didnt find pid so return error
+  release(&ptable.lock);
+  return -1;
+}
+
+//check runnable, running, sleeping, and embryo list for pid and get priority of process
+int
+getpriority(int pid)
+{
+  if(pid < 0)
+    return -1;
+
+  struct proc *p;
+
+  // check runnable list
+  for(int i = MAXPRIO; i >= 0; i--)
+  {
+    for(p = ptable.list[RUNNABLE].head; p; p = p->next)
+    {
+      if(p->pid == pid)
+        return p->priority;
+    }
+  }
+
+  // check running list
+  for(int i = MAXPRIO; i >= 0; i--)
+  {
+    for(p = ptable.list[RUNNING].head; p; p = p->next)
+    {
+      if(p->pid == pid)
+        return p->priority;
+    }
+  }
+
+  // check sleeping list
+  for(int i = MAXPRIO; i >= 0; i--)
+  {
+    for(p = ptable.list[SLEEPING].head; p; p = p->next)
+    {
+      if(p->pid == pid)
+        return p->priority;
+    }
+  }
+
+  // check embryo list
+  for(int i = MAXPRIO; i >= 0; i--)
+  {
+    for(p = ptable.list[EMBRYO].head; p; p = p->next)
+    {
+      if(p->pid == pid)
+        return p->priority;
+    }
+  }
+
+  //if nothing found throw error
+  return -1;
+}
+
+
+//Promotion function goest through each priority queue and promotes all processes
+//priority except for the highest priority queue
+void
+periodicPromotion()
+{
+    struct proc *p;
+
+    for(int i = 0; i < MAXPRIO; i++)
+    {
+        p = ptable.ready[i].head;
+        while(p)
+        {
+            struct proc* temp = p->next;
+            stateListRemove(&ptable.ready[i], p); 
+            assertState(p, RUNNABLE);
+            p->priority += 1;
+            stateListAdd(&ptable.ready[p->priority], p);
+            p = temp;
+        }
+    }
+
+    p = ptable.list[RUNNING].head;
+    while(p)
+    {
+        if(p->priority < MAXPRIO)
+        {
+            p->priority += 1;
+        }
+        p = p->next;
+    }
+
+    p = ptable.list[SLEEPING].head;
+    while(p)
+    {
+        if(p->priority < MAXPRIO)
+        {
+            p->priority +=1;
+        }
+        p = p->next;
+    }
+}
+#endif //CS333_P4

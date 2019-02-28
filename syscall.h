@@ -29,3 +29,5 @@
 #define SYS_setuid  SYS_getppid+1 // project 2
 #define SYS_setgid  SYS_setuid+1  // project 2
 #define SYS_getprocs  SYS_setgid+1  // project 2
+#define SYS_setpriority  SYS_getprocs+1  // project 4
+#define SYS_getpriority  SYS_setpriority+1  // project 4
