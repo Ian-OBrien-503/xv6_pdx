@@ -256,6 +256,9 @@ userinit(void)
   acquire(&ptable.lock);
   initProcessLists();
   initFreeList();
+#ifdef CS333_P4
+  ptable.PromoteAtTime = ticks + TICKS_TO_PROMOTE;
+#endif //CS333_P4
   release(&ptable.lock);
 #endif
 
@@ -1173,6 +1176,14 @@ initProcessLists()
   ptable.list[i].head = NULL;
   ptable.list[i].tail = NULL;
   }
+
+#ifdef CS333_P4
+  for(i = 0; i <= MAXPRIO; i++)
+  {
+    ptable.ready[i].head = NULL;
+    ptable.ready[i].tail = NULL;
+  }
+#endif //CS333_P4
 }
 
 // set all procs to UNUSED state

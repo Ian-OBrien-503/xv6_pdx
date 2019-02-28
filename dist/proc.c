@@ -254,6 +254,9 @@ userinit(void)
   acquire(&ptable.lock);
   initProcessLists();
   initFreeList();
+#ifdef CS333_P4
+  ptable.PromoteAtTime = ticks + TICKS_TO_PROMOTE;
+#endif //CS333_P4
   release(&ptable.lock);
 #endif
 
