@@ -18,9 +18,9 @@
 #define STRSIZE 10 
 
 //for project #4
-#define MAXPRIO 5
-#define DEFAULT_BUDGET 1000
-#define TICKS_TO_PROMOTE 100
+#define MAXPRIO 6
+#define DEFAULT_BUDGET 100 
+#define TICKS_TO_PROMOTE 1000
 //end add for project #4
 
 

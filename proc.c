@@ -463,13 +463,15 @@ exit(void)
   {
     if(p->parent == curproc)
       p->parent = initproc;
-  }
+ }
 
   // check ZOMBIE list
   for(p = ptable.list[ZOMBIE].head; p; p=p->next)
   {
-    if(p->parent == curproc)
+    if(p->parent == curproc){
       p->parent = initproc;
+      wakeup1(initproc);
+    }
   }
 
   // Jump into the scheduler, never to return.
@@ -578,7 +580,65 @@ exit(void)
 }
 #endif //CS333_P3
 
-#ifdef CS333_P3
+#if CS333_P4
+// Wait for a child process to exit and return its pid.
+// Return -1 if this process has no children.
+int
+wait(void)
+{
+  struct proc *p;
+  int havekids;
+  uint pid;
+  struct proc *curproc = myproc();
+
+  acquire(&ptable.lock);
+  for(;;){
+    // Scan through table looking for exited children.
+    havekids = 0;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->parent != curproc)
+        continue;
+      havekids = 1;
+      if(p->state == ZOMBIE){
+        // Found one.
+        pid = p->pid;
+        kfree(p->kstack);
+        p->kstack = 0;
+        freevm(p->pgdir);
+        p->pid = 0;
+        p->parent = 0;
+        p->name[0] = 0;
+        p->killed = 0;
+        stateListRemove(&ptable.list[ZOMBIE], p);
+        assertState(p, ZOMBIE);
+        p->state = UNUSED;
+        stateListAdd(&ptable.list[UNUSED],p);
+        release(&ptable.lock);
+        return pid;
+      }
+  }
+
+  for(int i = 0; i < MAXPRIO+1; i++)
+  {
+    for(p = ptable.ready[i].head; p ; p = p->next)
+    {
+      if(p->parent == curproc)
+          havekids = 1;
+    }
+  }
+
+    // No point waiting if we don't have any children.
+    if(!havekids || curproc->killed){
+      release(&ptable.lock);
+      return -1;
+    }
+
+    // Wait for children to exit.  (See wakeup1 call in proc_exit.)
+    sleep(curproc, &ptable.lock);  //DOC: wait-sleep
+  }
+}
+
+#elif defined(CS333_P3)
 // Wait for a child process to exit and return its pid.
 // Return -1 if this process has no children.
 int
@@ -701,7 +761,7 @@ scheduler(void)
       periodicPromotion();
       ptable.PromoteAtTime = ticks + TICKS_TO_PROMOTE;
     }
-    for(int i = 0; i < MAXPRIO +1; i++)
+    for(int i = MAXPRIO; i >= 0;i--)
     {
       p = ptable.ready[i].head;
       if(!p) 
@@ -712,7 +772,7 @@ scheduler(void)
 #ifdef PDX_XV6
       idle = 0;  // not idle this timeslice
 #endif // PDX_XV6
-#ifdef CS333_P2
+#ifdef CS333_P3
       p->cpu_ticks_in = ticks;
 #endif //CS333_P2
       c->proc = p;
@@ -1004,6 +1064,8 @@ yield(void)
   sched();
   release(&ptable.lock);
 }
+
+
 #elif defined(CS333_P3)
 // Give up the CPU for one scheduling round.
 void
@@ -1015,7 +1077,8 @@ yield(void)
   stateListRemove(&ptable.list[RUNNING], curproc);
   assertState(curproc, RUNNING);
   curproc->state = RUNNABLE;
-  stateListAdd(&ptable.list[RUNNABLE], curproc);
+  //ADDED THIS LINE FOR P4, ready list should be empty anyways
+  stateListAdd(&ptable.ready[curproc->priority], curproc);
   sched();
   release(&ptable.lock);
 }
@@ -1077,8 +1140,24 @@ sleep(void *chan, struct spinlock *lk)
   }
   // Go to sleep.
   p->chan = chan;
+
+
   stateListRemove(&ptable.list[RUNNING], p);
   assertState(p, RUNNING);
+
+
+  // update budget after running
+  p->budget = (p->budget - (ticks - p->cpu_ticks_in));
+  // if used all budget demote and reset budget
+  if(p->budget <= 0)
+  {
+    if(p->priority >0)
+      p->priority -= 1;
+    p->budget = DEFAULT_BUDGET;
+  }
+ 
+
+
   p->state = SLEEPING;
   stateListAdd(&ptable.list[SLEEPING], p);
 
@@ -1194,13 +1273,16 @@ kill(int pid)
   struct proc *p;
 
   acquire(&ptable.lock);
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->pid == pid){
+  //check sleepy list
+  for(p = ptable.list[SLEEPING].head; p ; p = p->next)
+  {
+    if(p->pid == pid)
+    {
       p->killed = 1;
-      // Wake process from sleep if necessary.
-      if(p->state == SLEEPING){
-        stateListRemove(&ptable.list[SLEEPING], p);
-        assertState(p,SLEEPING);
+      if(p->state == SLEEPING)
+      {
+        stateListRemove(&ptable.list[SLEEPING],p);
+        assertState(p, SLEEPING);
         p->state = RUNNABLE;
         stateListAdd(&ptable.ready[p->priority], p);
       }
@@ -1208,6 +1290,43 @@ kill(int pid)
       return 0;
     }
   }
+
+  // check MLFQ
+  for(int i = 0; i < MAXPRIO+1; i++)
+  {
+    for(p = ptable.ready[i].head; p ; p = p->next)
+    {
+      if(p->pid == pid)
+      {
+        p->killed = 1;
+        release(&ptable.lock);
+        return 0;
+      }
+    }
+  }
+  
+  //CHECK running list
+  for(p = ptable.list[RUNNING].head; p; p = p->next)
+  {
+    if(p->pid == pid)
+    {
+      p->killed = 1;
+      release(&ptable.lock);
+      return 0;
+    }
+  }
+
+  //check embryo list
+  for(p = ptable.list[EMBRYO].head; p; p = p->next)
+  {
+    if(p->pid == pid)
+    {
+      p->killed = 1;
+      release(&ptable.lock);
+       return 0;
+    }
+  }
+
   release(&ptable.lock);
   return -1;
 }
