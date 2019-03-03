@@ -140,7 +140,7 @@ void            yield(void);
 #ifdef CS333_P4
 int             setpriority(int pid, int priority);
 int             getpriority(int pid);
-void            periodicPromotion();
+void            promotionTime();
 void            procdumpP4(struct proc*, char *state);
 #endif
 

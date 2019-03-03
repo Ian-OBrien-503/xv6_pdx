@@ -758,7 +758,7 @@ scheduler(void)
     acquire(&ptable.lock);
     if(ticks >= ptable.PromoteAtTime)
     {
-      periodicPromotion();
+      promotionTime();
       ptable.PromoteAtTime = ticks + TICKS_TO_PROMOTE;
     }
     for(int i = MAXPRIO; i >= 0;i--)
@@ -1772,31 +1772,27 @@ int
 setpriority(int pid, int priority)
 {
   // double check bounds
-  if(pid <0 || priority <0 || priority > MAXPRIO)
+  if(pid <0 || pid > MAX ||  priority <0 || priority > MAXPRIO)
     return -1;
 
   struct proc *p;
   acquire(&ptable.lock);
 
-  // check runnable list
-  for(int i = 0; i < 0; i++)
+  for(int i = MAXPRIO; i >= 0; i--)
   {
-    for(p = ptable.list[RUNNABLE].head; p; p = p->next)
+    for(p = ptable.ready[i].head; p; p = p->next)
     {
       if(p->pid == pid)
-        if(p->priority != priority)
-        {
-          p->priority = priority; 
-          p->budget = DEFAULT_BUDGET;
-        }
-      release(&ptable.lock);
-      return 0;
+      {
+        p->priority = priority;
+        p->budget = DEFAULT_BUDGET;
+        release(&ptable.lock);
+        return 0;
+      }
     }
   }
-
+ 
   // check running list
-  for(int i = 0; i < 0; i++)
-  {
     for(p = ptable.list[RUNNING].head; p; p = p->next)
     {
       if(p->pid == pid)
@@ -1808,11 +1804,8 @@ setpriority(int pid, int priority)
       release(&ptable.lock);
       return 0;
     }
-  }
 
   // check sleeping list
-  for(int i = 0; i < 0; i++)
-  {
     for(p = ptable.list[SLEEPING].head; p; p = p->next)
     {
       if(p->pid == pid)
@@ -1824,11 +1817,8 @@ setpriority(int pid, int priority)
       release(&ptable.lock);
       return 0;
     }
-  }
 
   // check sleeping list
-  for(int i = 0; i < 0; i++)
-  {
     for(p = ptable.list[SLEEPING].head; p; p = p->next)
     {
       if(p->pid == pid)
@@ -1840,11 +1830,8 @@ setpriority(int pid, int priority)
       release(&ptable.lock);
       return 0;
     }
-  }
 
   // check embryo list
-  for(int i = 0; i < 0; i++)
-  {
     for(p = ptable.list[EMBRYO].head; p; p = p->next)
     {
       if(p->pid == pid)
@@ -1855,7 +1842,6 @@ setpriority(int pid, int priority)
       release(&ptable.lock);
       return 0;
     }
-  }
 
   //didnt find pid so return error
   release(&ptable.lock);
@@ -1871,10 +1857,9 @@ getpriority(int pid)
 
   struct proc *p;
 
-  // check runnable list
   for(int i = MAXPRIO; i >= 0; i--)
   {
-    for(p = ptable.list[RUNNABLE].head; p; p = p->next)
+    for(p = ptable.ready[i].head; p; p = p->next)
     {
       if(p->pid == pid)
         return p->priority;
@@ -1882,34 +1867,25 @@ getpriority(int pid)
   }
 
   // check running list
-  for(int i = MAXPRIO; i >= 0; i--)
-  {
     for(p = ptable.list[RUNNING].head; p; p = p->next)
     {
       if(p->pid == pid)
         return p->priority;
     }
-  }
 
   // check sleeping list
-  for(int i = MAXPRIO; i >= 0; i--)
-  {
     for(p = ptable.list[SLEEPING].head; p; p = p->next)
     {
       if(p->pid == pid)
         return p->priority;
     }
-  }
 
   // check embryo list
-  for(int i = MAXPRIO; i >= 0; i--)
-  {
     for(p = ptable.list[EMBRYO].head; p; p = p->next)
     {
       if(p->pid == pid)
         return p->priority;
     }
-  }
 
   //if nothing found throw error
   return -1;
@@ -1919,21 +1895,20 @@ getpriority(int pid)
 //Promotion function goest through each priority queue and promotes all processes
 //priority except for the highest priority queue
 void
-periodicPromotion()
+promotionTime()
 {
-    struct proc *p;
+  struct proc *p;
 
     for(int i = 0; i < MAXPRIO; i++)
     {
         p = ptable.ready[i].head;
         while(p)
         {
-            struct proc* temp = p->next;
             stateListRemove(&ptable.ready[i], p); 
             assertState(p, RUNNABLE);
             p->priority += 1;
             stateListAdd(&ptable.ready[p->priority], p);
-            p = temp;
+            p = p->next;
         }
     }
 
@@ -1941,9 +1916,7 @@ periodicPromotion()
     while(p)
     {
         if(p->priority < MAXPRIO)
-        {
             p->priority += 1;
-        }
         p = p->next;
     }
 
@@ -1951,9 +1924,7 @@ periodicPromotion()
     while(p)
     {
         if(p->priority < MAXPRIO)
-        {
             p->priority +=1;
-        }
         p = p->next;
     }
 }
